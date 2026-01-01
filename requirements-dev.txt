@@ -1,0 +1,10 @@
+# --- Development & Code Quality Tools ---
+# Include production dependencies
+-r requirements.txt
+
+# Add development-specific tools
+ruff==0.13.0
+bandit==1.8.6
+mypy==1.18.1
+coverage==7.3.2
+testtools==2.5.0

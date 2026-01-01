@@ -1,0 +1,4 @@
+# --- Application Dependencies ---
+Flask==3.1.2
+gunicorn==23.0.0
+# ... add other application-specific libraries here
