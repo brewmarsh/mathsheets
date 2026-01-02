@@ -1,25 +1,50 @@
 version: '3.8'
 
 services:
+  # 1. THE DATABASE
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: math_worksheet_db
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data  # Persist data on VPS disk
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Runs once on first startup
+    networks:
+      - math_net
+
+  # 2. THE FRONTEND
   web:
     build: .
+    restart: always
     ports:
-      - "5000:5000"
-    volumes:
-      - .:/app
+      - "3000:3000" # Expose to host (Nginx will proxy to this)
+    environment:
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/math_worksheet_db
     depends_on:
       - db
-    environment:
-      - FLASK_ENV=development
+    networks:
+      - math_net
 
-  db:
-    image: postgres:13
+  # 3. THE INGESTION WORKER (Replaces GitHub Action)
+  worker:
+    build: .
+    # Override command to run the script instead of the website
+    command: ["node", "scripts/ingest-standards.js"] 
+    restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: app_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # This puts the worker on a "Schedule" using a simple sleep loop or node-cron
+      RUN_MODE: "cron" 
+    depends_on:
+      - db
+    networks:
+      - math_net
 
-volumes:
-  postgres_data:
+networks:
+  math_net:
+    driver: bridge
