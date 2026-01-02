@@ -1,0 +1,32 @@
+name: Sync Standards
+
+on:
+  schedule:
+    # Runs at 08:00 UTC every Monday
+    - cron: '0 8 * * 1'
+  workflow_dispatch: 
+    # Allows you to click a "Run Now" button manually for testing
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Ingestion Script
+        # We inject the secrets safely here
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STANDARDS_API_SOURCE: ${{ vars.STANDARDS_API_SOURCE }}
+        run: npx ts-node scripts/ingest-standards.ts
